@@ -1,6 +1,6 @@
 import { Cart, CartItem, Prisma } from '@prisma/client';
 import { cookies } from 'next/dist/client/components/headers';
-import prisma from './prisma';
+import { prisma } from './prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../authOptions';
 
@@ -104,12 +104,18 @@ export async function mergeAnonymousCartIntoUserCart(userId: string) {
         where: { cartId: userCart.id },
       });
 
-      await tx.cartItem.createMany({
-        data: mergedCartItems.map((item) => ({
-          cartId: userCart.id,
-          productId: item.productId,
-          quantity: item.quantity,
-        })),
+      await tx.cart.update({
+        where: { id: userCart.id },
+        data: {
+          items: {
+            createMany: {
+              data: mergedCartItems.map((item) => ({
+                productId: item.productId,
+                quantity: item.quantity,
+              })),
+            },
+          },
+        },
       });
     } else {
       await tx.cart.create({
